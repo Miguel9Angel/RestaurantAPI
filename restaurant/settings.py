@@ -37,7 +37,10 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    'restaurantAPI',
     "rest_framework",
+    "rest_framework.authtoken",
+    "djoser",
 ]
 
 MIDDLEWARE = [
@@ -50,7 +53,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-ROOT_URLCONF = "restaurantAPI.urls"
+ROOT_URLCONF = "restaurant.urls"
 
 TEMPLATES = [
     {
@@ -67,7 +70,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "restaurantAPI.wsgi.application"
+WSGI_APPLICATION = "restaurant.wsgi.application"
 
 
 # Database
@@ -121,3 +124,21 @@ STATIC_URL = "static/"
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ],
+}
+
+DJOSER = {
+    'LOGIN_FIELD': 'username',
+    'USER_CREATE_PASSWORD_RETYPE': True,
+    'SERIALIZERS': {
+        'user_create': 'djoser.serializers.UserCreateSerializer',
+    },
+    'PERMISSIONS': {
+        'user_create': ['rest_framework.permissions.AllowAny'],
+        'user': ['rest_framework.permissions.IsAuthenticated'],
+    }
+}

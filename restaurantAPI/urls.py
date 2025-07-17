@@ -9,5 +9,6 @@ urlpatterns = [
     path('groups/manager/users', views.ManagerUserListView.as_view(), name='manager-user-list'),
     path('groups/manager/users', views.AddUserToManagerGroupView.as_view(), name='add-user-to-manager-group'),
     path('groups/manager/users/<int:user_id>/', views.RemoveUserFromManagerGroupView.as_view(), name='remove-manager-user'),
-    path('groups/delivery-crew/users', views.DeliveryCrewUserListView.as_view(), name='delivery-crew-user-list'),
+    path('groups/delivery-crew/users', views.DeliveryCrewUsersView.as_view(), name='delivery-crew-user-list'),
+    path('cart/menu-items', views.CartListView.as_view(), name='cart-llist'),
 ]

@@ -152,4 +152,11 @@ class CartMenuItemsView(generics.GenericAPIView):
         items.delete()
         return Response({'message':'Element succesfully eliminated'}, status=status.HTTP_204_NO_CONTENT)
     
-class
+class OrdersViewList(generics.GenericAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = serializer.OrderSerializer
+    
+    def get(self, request):
+        orders = models.Order.objects.filter(user=request.user)
+        serialized_order = serializer.OrderSerializer(orders, many=True)
+        return Response(serialized_order.data)

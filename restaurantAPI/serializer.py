@@ -17,8 +17,17 @@ class CartSerializer(serializers.ModelSerializer):
         model = models.Cart
         fields = '__all__'
 
+class OrderItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.OrderItem
+        fields = '__all__'
+
 class OrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Order
-        field = '__all__'
+        fields = '__all__'
 
+class OrderUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Order
+        fiels = ['delivery_crew', 'status']

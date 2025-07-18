@@ -1,8 +1,10 @@
+from django.db.models import Sum
 from django.contrib.auth.models import User, Group
+from django.shortcuts import get_object_or_404
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .permissions import IsManager
+from .permissions import IsManager, IsDeliveryCrew
 from . import models
 from . import serializer
 # Create your views here.
@@ -19,16 +21,16 @@ class SingleMenuItemRetrieveView(generics.RetrieveAPIView):
 class MenuItemListManagerView(generics.ListCreateAPIView):
     queryset = models.MenuItem.objects.all()
     serializer_class = serializer.MenuItemSerializer
-    permission_classes = [IsManager]
+    permission_classes = [permissions.IsAuthenticated, IsManager]
 
 class SingleMenuItemRetrieveManagerView(generics.RetrieveUpdateDestroyAPIView):
     queryset = models.MenuItem.objects.all()
     serializer_class = serializer.MenuItemSerializer
-    permission_classes = [IsManager]
+    permission_classes = [permissions.IsAuthenticated, IsManager]
     
 class ManagerUserListView(generics.ListAPIView):
     serializer_class = serializer.UserSerializer
-    permission_classes = [IsManager]
+    permission_classes = [permissions.IsAuthenticated, IsManager]
 
     def get_queryset(self):
         return User.objects.filter(groups__name='manager')
@@ -152,7 +154,7 @@ class CartMenuItemsView(generics.GenericAPIView):
         items.delete()
         return Response({'message':'Element succesfully eliminated'}, status=status.HTTP_204_NO_CONTENT)
     
-class OrdersViewList(generics.GenericAPIView):
+class OrdersListCreateView(generics.GenericAPIView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = serializer.OrderSerializer
     
@@ -160,3 +162,80 @@ class OrdersViewList(generics.GenericAPIView):
         orders = models.Order.objects.filter(user=request.user)
         serialized_order = serializer.OrderSerializer(orders, many=True)
         return Response(serialized_order.data)
+    
+    def post(self, request):
+        items_cart = models.Cart.objects.filter(user=request.user)
+        if not items_cart.exists():
+            return Response({'error': 'Cart is empty'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        order = models.Order.objects.create(
+            user = request.user,
+            total=items_cart.aggregate(total_price=Sum('price'))['total_price'] or 0
+        )
+        for item in items_cart:
+            quantity = item.quantity
+            unit_price = item.unit_price
+            total_price = quantity*unit_price
+            models.OrderItem.objects.create(
+                order = order,
+                menuitem = item,
+                quantity = quantity,
+                unit_price = unit_price,
+                price = total_price
+            )
+        items_cart.delete()
+        serializer = self.get_serializer(order)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+class OrderViewList(generics.GenericAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = serializer.OrderItemSerializer
+
+    def get(self, request, order_id):
+        order = get_object_or_404(models.Order, id=order_id)
+        if order.user != request.user:
+            return Response({'error':'You are not allowed to see this order'}, status=status.HTTP_403_FORBIDDEN)
+        
+        order_items = models.OrderItem.objects.filter(order=order)
+        serializer = self.get_serializer(order_items, many=True)
+        return Response(serializer.data)
+
+class AllOrderViewList(generics.ListAPIView):
+    permission_classes = [permissions.IsAuthenticated,IsManager]
+    serializer_class = serializer.OrderSerializer
+    queryset = models.Order.objects.all()
+
+class AllOrdersManagerAPIView(generics.UpdateAPIView):
+    permission_classes = [permissions.IsAuthenticated,IsManager]
+    serializer_class = serializer.OrderUpdateSerializer
+    queryset = models.Order.objects.all()
+
+class DeleteOrderAPIView(generics.DestroyAPIView):
+    permission_classes = [permissions.IsAuthenticated, IsManager]
+    serializer_class = serializer.OrderSerializer
+    queryset = models.Order.objects.all()
+
+class ListOrderAPIView(generics.GenericAPIView):
+    permission_classes = [permissions.IsAuthenticated, IsDeliveryCrew]
+    serializer_class = serializer.OrderSerializer
+
+    def get(self, request):
+        delyvery_orders = models.Order.objects.filter(user=request.user)
+        serializer = self.get_serializer(delyvery_orders, many=True)
+        return Response(serializer.data)
+
+class UpdateOrderStatusView(generics.UpdateAPIView):
+    queryset = models.Order.objects.all()
+    permission_classes = [permissions.IsAuthenticated, IsDeliveryCrew]
+    serializer_class = serializer.OrderSerializer
+
+    def patch(self, request, *args, **kwargs):
+        order = self.get_object()
+        if set(request.data.keys()) != {'status'}:
+            return Response(
+                {'detail':'Just the status variables is available to edit'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        order.status = request.data.get('status')
+        order.save()
+        return Response({'message':'status updated'},status=status.HTTP_200_OK)

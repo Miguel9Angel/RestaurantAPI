@@ -5,13 +5,25 @@ from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from .permissions import IsManager, IsDeliveryCrew
+from rest_framework.filters import SearchFilter, OrderingFilter
+from django_filters.rest_framework import DjangoFilterBackend
 from . import models
 from . import serializer
 # Create your views here.
+
+class CategoryView(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [permissions.IsAuthenticated, IsManager]
+    serializer_class = serializer.CategorySerializer
+    queryset = models.Category.objects.all()
+    
 class MenuItemListView(generics.ListAPIView):
     queryset = models.MenuItem.objects.all()
     serializer_class = serializer.MenuItemSerializer
     permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ['category', 'price']
+    search_fields = ['title', 'description']
+    ordering_fields = ['price', 'title']
 
 class SingleMenuItemRetrieveView(generics.RetrieveAPIView):
     queryset = models.MenuItem.objects.all()
@@ -22,6 +34,9 @@ class MenuItemListManagerView(generics.ListCreateAPIView):
     queryset = models.MenuItem.objects.all()
     serializer_class = serializer.MenuItemSerializer
     permission_classes = [permissions.IsAuthenticated, IsManager]
+    filterset_fields = ['category', 'price']
+    search_fields = ['title', 'description']
+    ordering_fields = ['price', 'title']
 
 class SingleMenuItemRetrieveManagerView(generics.RetrieveUpdateDestroyAPIView):
     queryset = models.MenuItem.objects.all()
@@ -31,10 +46,11 @@ class SingleMenuItemRetrieveManagerView(generics.RetrieveUpdateDestroyAPIView):
 class ManagerUserListView(generics.ListAPIView):
     serializer_class = serializer.UserSerializer
     permission_classes = [permissions.IsAuthenticated, IsManager]
+    search_fields = ['username']
+    ordering_fields = ['username']
 
     def get_queryset(self):
         return User.objects.filter(groups__name='manager')
-    
 
 class AddUserToManagerGroupView(APIView):
     permissions_classes = [permissions.IsAuthenticated, IsManager]
@@ -50,7 +66,7 @@ class AddUserToManagerGroupView(APIView):
         except User.DoesNotExist:
             return Response({'error':'User not found'}, status=status.HTTP_400_BAD_REQUEST)
         
-        manager_group, created = Group.objects.get_or_create(name='manager')        
+        manager_group, _ = Group.objects.get_or_create(name='manager')        
         user.groups.add(manager_group)
         return Response({'message': f"User {user.username} added to 'manager' group"}, status=status.HTTP_201_CREATED)
 
@@ -190,6 +206,9 @@ class OrdersListCreateView(generics.GenericAPIView):
 class OrderViewList(generics.GenericAPIView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = serializer.OrderItemSerializer
+    filterset_fields = ['menuitem', 'unit_price']
+    search_fields = ['menuitem']
+    ordering_fields = ['menuitem']
 
     def get(self, request, order_id):
         order = get_object_or_404(models.Order, id=order_id)
@@ -201,9 +220,12 @@ class OrderViewList(generics.GenericAPIView):
         return Response(serializer.data)
 
 class AllOrderViewList(generics.ListAPIView):
+    filterset_fields = ['user', 'total']
+    search_fields = ['user', 'delivery_crew']
+    ordering_fields = ['user', 'total']
     permission_classes = [permissions.IsAuthenticated,IsManager]
     serializer_class = serializer.OrderSerializer
-    queryset = models.Order.objects.all()
+    queryset = models.Order.objects.all() 
 
 class AllOrdersManagerAPIView(generics.UpdateAPIView):
     permission_classes = [permissions.IsAuthenticated,IsManager]
@@ -218,6 +240,9 @@ class DeleteOrderAPIView(generics.DestroyAPIView):
 class ListOrderAPIView(generics.GenericAPIView):
     permission_classes = [permissions.IsAuthenticated, IsDeliveryCrew]
     serializer_class = serializer.OrderSerializer
+    filterset_fields = ['user', 'total']
+    search_fields = ['user', 'delivery_crew']
+    ordering_fields = ['user', 'total']
 
     def get(self, request):
         delyvery_orders = models.Order.objects.filter(user=request.user)

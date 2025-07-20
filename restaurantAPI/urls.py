@@ -12,9 +12,11 @@ urlpatterns = [
     path('groups/delivery-crew/users', views.DeliveryCrewUsersView.as_view(), name='delivery-crew-user-list'),
     path('cart/menu-items', views.CartMenuItemsView.as_view(), name='cart-llist'),
     path('cart/menu-items', views.CartMenuItemsView.as_view(), name='cart-menu-items'),
-    path('orders', views.OrdersListCreateView.as_view(), name='order-get-post'),
+    path('orders/', views.OrdersListCreateView.as_view(), name='order-get-post'),
     path('orders/<int:order_id>/', views.OrderViewList.as_view(), name='Order-menu-item'),
     path('orders/', views.AllOrderViewList.as_view(), name='all-orders-user'),
     path('orders/', views.AllOrdersManagerAPIView.as_view(), name='all-orders'),
-    
-]
+    path('orders/<int:order_id>/', views.DeleteOrderAPIView.as_view(), name='delete-order'),
+    path('orders/', views.ListOrderAPIView.as_view(), name='all-orders-delivery-crew'),
+    path('orders/<int:order_id>/', views.UpdateOrderStatusView.as_view(), name='patch-order'),
+]  

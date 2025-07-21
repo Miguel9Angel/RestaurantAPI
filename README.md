@@ -1,4 +1,4 @@
-# 🏡 Predicción de precios de arriendo en Bogotá
+# 🏡 Restaurant API with Django
 
 This project demonstrates the practical application of concepts and skills learned during the REST API Development with Django course on Coursera. Its main objective is to solidify understanding through hands-on implementation.
 
